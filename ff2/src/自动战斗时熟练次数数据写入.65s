@@ -1,0 +1,68 @@
+﻿			.ORG $a090	;<<907f
+			LDX #$0
+			STX $105
+			STX $104
+			STX $103
+			
+x2			LDY $104
+			LDA $7da4,y	;读取战斗状态
+			JSR x3		;攻击状态检测
+			JSR x1
+			JSR x4
+			INC $103
+			INX
+			CPX #$4
+			BNE x2
+			
+ext			LDA #$4
+			STA $9e
+			RTS
+
+x1			CLC
+			LDA $104
+			ADC #$30
+			STA $104
+			RTS
+
+x4			CLC
+			LDA $105
+			ADC #$f
+			STA $105
+			RTS
+
+x3			PHA
+			TXA
+			PHA
+			
+			LDA $7da4,y
+			CMP #$1		;判断角色魔法
+			BCC xx1
+			CMP #$29
+			BCS xx1
+			LDY $103
+			LDX $6ff0,y
+			INC $7cf7,x
+			JMP xx3
+			
+xx1			CMP #$0		;判断角色攻击时
+			BNE xx3
+			LDX $103
+			INC $7cf3,x
+			
+xx3			PLA
+			TAX
+			PLA
+			RTS
+			
+
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			

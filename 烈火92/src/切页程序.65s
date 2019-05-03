@@ -1,0 +1,15 @@
+﻿		.ORG $ff9f
+-		LDA #$06
+		SEI
+		STA $8000
+		STX $8001
+		CLI
+		RTS 
+		PHA
+		LDX #$04
+		JSR -
+		PLA
+		JSR $8c10
+		RTS
+		
+		

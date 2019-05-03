@@ -1,0 +1,37 @@
+﻿			.ORG $a1a0	;<<91df
+			LDA $9e
+			CMP #$0
+			BEQ x1
+			CMP #$1
+			BEQ x2
+			CMP #$2
+			BEQ x3
+			
+x1			LDA $7da4
+			JSR xx1
+			JMP ext
+x2			LDA $7dd4
+			JSR xx1
+			JMP ext
+x3			LDA $7e04
+			JSR xx1
+			JMP ext
+			
+xx1			CMP #$1		;判断角色魔法
+			BCC xx2
+			CMP #$29
+			BCS xx2
+			LDY $9e
+			LDX $6ff0,y
+			DEC $7cf7,x
+			RTS
+			
+xx2			CMP #$0		;判断角色攻击时
+			BNE ext
+			LDX $9e
+			DEC $7cf3,x
+			RTS
+			
+ext			LDX #$19
+			JMP $f8ce
+			

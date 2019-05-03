@@ -1,0 +1,34 @@
+﻿			.ORG $ff76		;<<96e2
+			PHP
+			PHA
+			LDA $7813
+			CMP #$4
+			BNE x1
+ext			LDA $6f
+			CMP #$0
+			BNE xx1
+			INC $6f
+			JMP ext1
+xx1			DEC $6f
+ext1			PLA
+			PLP
+			PLA
+			PLA
+			PLA
+			PLA
+			JMP $aec5
+			
+x1			PLA
+			PLP
+			CLC
+			ADC $78f1	;光标右移或下移过界
+			RTS
+
+			LDA $7813
+			CMP #$4
+			BEQ ext			
+x2			PLA
+			PLP
+			SBC $78f1	;光标左移或上移过界
+			RTS
+			

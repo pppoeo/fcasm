@@ -1,0 +1,10 @@
+﻿			.ORG $83f0 	;<<a341
+			CLC
+			ADC $72
+			TAX
+			LDA $6070,x
+			CPX #$10
+			BCC ext
+			LDA #$1
+ext			RTS
+			

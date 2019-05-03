@@ -1,0 +1,9 @@
+﻿		.ORG $cf9e
+		LDA $1D
+		CMP #$09
+		BEQ +
+		LDA $0017
+		AND #$CF
+		RTS
++		LDA #$80
+		RTS 

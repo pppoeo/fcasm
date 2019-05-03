@@ -1,0 +1,15 @@
+﻿			.ORG $8250	;<<a8f8
+			LDX $a
+			LDA #$0
+			CMP $6f
+			BNE x1
+			STA $6060,x
+ext			LDX #$1c
+			JMP $f8e3
+		
+x1			STA $6070,x
+			JMP ext
+			
+			
+			
+			

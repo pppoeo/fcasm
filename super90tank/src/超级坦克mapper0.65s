@@ -1,0 +1,733 @@
+﻿			.ORG $b600
+			CMP #$00	;程序索引
+			BEQ M0
+			CMP #$01
+			BEQ M1
+			CMP #$02
+			BEQ M2
+			CMP #$03
+			BEQ M3
+			CMP #$04
+			BEQ M4
+			CMP #$05
+			BEQ M5
+			CMP #$06
+			BEQ M6
+			CMP #$07
+			BEQ M7
+			CMP #$08
+			BEQ M8
+			CMP #$09
+			BEQ M9
+			CMP #$0a
+			BEQ MA
+			CMP #$10
+			BEQ M10
+			RTS
+			
+M0			JMP c61b	;我方坦克吃枪处理
+M1			JMP dc09	;坦克速度属性
+M2			jmp e7f2	;ai坦克爆炸速度处理
+M3			JMP ff7a	;我方坦克爆炸处理
+M4			JMP e7ea	;水泥弹减速效果
+M5			JMP fe19	;我方坦克吃五星
+M6			JMP fe09	;ai坦克吃五星
+M7			JMP e7cc	;坦克穿甲弹设计
+M8			JMP c01f	;游戏按键设计
+M9			JMP e099	;特种弹发射处理
+MA			JMP fe26	;吃炸弹初始化
+M10			JMP d413	;ppu显示部分;-;-
+
+;2018.7.21
+;pppoe
+;+c607我方坦克吃枪处理
+c61b			LDA $601a,x
+			CMP #$f0
+			BCS ext		;防止弹仓数量溢出
+			CLC
+			ADC #$05
+			STA $601a,x
+			LDA $178,x	;读取子弹属性
+			CMP #$a0
+			BCS +
+			LDA #$a0
+			STA $178,x
+			RTS
+			
+c61bq1			CMP #$c0	
+			BEQ ext
+			CLC
+			ADC #$10
+			STA $178,x	;写入子弹属性
+ext			RTS
+
++			LDA $178,x
+			CMP #$b1
+			BCS +
+			LDA $a8,x
+			ORA #$01
+			STA $a8,x
+			STA $101,x
+			LDA #$b1
+			STA $178,x
+			RTS
+			
++			LDA #$c0
+			STA $178,x
+			RTS
+			;-
+			
+;2018.7.28
+;pppoe
+;+;dc09坦克速度属性		.ORG $bd20	;<<DC09
+dc09			LDA $0b
+			AND #$01
+			BNE y1
+			LDA $0b
+			AND #$03
+			BNE y2
+
+;ai坦克拥有速度属性dc35<<
+y1			LDA $6010,x
+			CMP #$0
+			BEQ 计时器	;定时设计
+			
+			LDA $0b
+			CMP #$80
+			BEQ 计时器减
+			CMP #$ff
+			BEQ 计时器减
+			JMP dc09t1
+计时器减			DEC $6010,x
+
+dc09t1			LDA $6000,x
+			BMI j1		;减速调用
+			CMP #$1
+			BEQ j2		;加速调用
+计时器			LDA #$0		;计时器0时恢复速度属性
+			STA $6000,x
+			
+move			JSR $dc3d
+			RTS
+
+			
+y2			PLA
+			PLA
+			JMP $dc38
+			
+j1			LDA $6008,x 	;减速效果设计
+			CMP #$01
+			BNE j11
+			DEC $6008,x
+			JMP move
+j11			INC $6008,x
+			RTS
+			
+j2			LDA #$01	;加速效果设计
+			STA $15
+move1			JSR $dc3d
+			DEC $15
+			BPL move1
+			INC $15
+			RTS
+			;-
+			
+;2018.7.28
+;pppoe
+;+;我方坦克吃五星	.ORG $bd60	;<<fe18
+fe19		LDA $6000,x
+		CMP #$01
+		BEQ fe19ext
+		LDA #$14
+		STA $6010,x
+		INC $6000,x
+		
+		LDA $601a,x	;增加特种弹
+		CLC
+		ADC #$5
+		STA $601a,x
+		
+		;LDA $101,x
+		;CMP #$60
+		;BCS fe19ext
+		;CLC
+		;ADC #$20
+		;STA $101,x
+		;STA $a8,x
+fe19ext		RTS;- 
+		
+;2018.8.12
+;pppoe
+;+;ai坦克吃五星加速		.ORG $bdd0	;<<fe09
+fe09			LDA #$14
+			STA $6010,x
+			LDA $6000,x
+			CMP #$01
+			BEQ fe09ext
+			INC $6000,x
+fe09ext			RTS;-
+
+;2018.8.12
+;pppoe
+;+;ai坦克爆炸速度处理	.ORG $bdc0	;<<E7f2
+e7f2			LDA #$0		;坦克爆炸速度初始化
+			STA $6000,x
+			STA $6010,x	;坦克计时器初始化
+			TXA
+			PHA
+			TYA
+			JSR 坦克经验	;坦克经验计算
+			PLA
+			TAX
+			JSR $e3ef
+			
+			LDA $89,y	;防护罩判断
+			CMP #$0
+			BNE e7f2ext
+			
+			JSR 碰撞检测	;我方爆炸减速伤害
+e7f2ext			LDA #$01
+			RTS;-
+			
+			
+;2018.10.18
+;pppoe
+;+吃炸弹初始化
+fe26			LDA #$0
+                        LDY #$1
+fe261			STA $6000,y
+			STA $6010,y
+			STA $6026,y	;死亡经验清零
+			LDA #$0a
+			STA $601a,y	;死亡初始化弹仓
+			DEY
+			BPL fe261
+			LDA #$01
+			STA $5a
+			STA $30a
+			RTS;-
+			
+			
+;2018.8.12
+;pppoe
+;+;碰撞检测		.ORG $bde0
+碰撞检测			JSR jc1		;1p碰撞检测
+			JSR jc2		;2p碰撞检测
+			RTS
+			
+			
+jc1			LDA $90,x
+			SEC
+			SBC $90
+			CMP #$20
+			BCC q1
+			CMP #$e6
+			BCS q1
+			RTS
+			
+			
+q1			LDA $98,x
+			SEC
+			SBC $98
+			CMP #$20
+			BCC q11
+			CMP #$e6
+			BCS q11
+			RTS
+			
+q11			LDA #$03
+			STA $6010,y
+			LDA $6000
+			CMP #$ff
+			BEQ bdext
+			DEC $6000
+			RTS
+			
+jc2			LDA $90,x
+			SEC
+			SBC $91
+			CMP #$20
+			BCC q2
+			CMP #$e6
+			BCS q2
+			RTS
+			
+			
+q2			LDA $98,x
+			SEC
+			SBC $99
+			CMP #$20
+			BCC q21
+			CMP #$e6
+			BCS q21
+			RTS
+			
+q21			LDA #$03
+			STA $6010,y
+			LDA $6001
+			CMP #$ff
+			beq bdext
+			DEC $6001
+bdext			RTS;-
+			
+;2018.7.28
+;pppoe
+;+;我方坦克爆炸处理	.ORG $be30	;<<ff7a
+			;CPX #$02
+			;BCS q1
+ff7a			LDA #$0
+			STA $6000,x
+			STA $6010,x
+			STA $6026,x	;死亡经验清零
+			;LDA #$0a
+			STA $601a,x	;初始化弹仓
+			TXA
+			PHA
+			CPX #$01
+			BEQ ai2
+			JSR ai1
+extff7a			PLA
+			TAX
+			LDA #$73
+			STA $a0,x
+			PLA
+			PLA
+			JMP $e763
+			RTS
+			
+ai1			LDX #$02			
+e2			LDA $90		;1p坦克爆炸检测
+			SEC
+			SBC $90,x
+			CMP #$1c
+			BCC a1
+			CMP #$e6
+			BCS a1
+			JMP e1
+			
+a1			LDA $98
+			SEC
+			SBC $98,x
+			CMP #$1c
+			BCC a11
+			CMP #$e6
+			BCS a11
+			JMP e1
+			
+a11			LDA #$03
+			STA $6010,x
+			
+			LDA #$ff
+			STA $6000,x
+e1			INX
+			CPX #$7
+			BNE e2
+			RTS
+			
+ai2			LDX #$02			
+e22			LDA $91		;2p坦克爆炸检测
+			SEC
+			SBC $90,x
+			CMP #$1c
+			BCC a2
+			CMP #$e6
+			BCS a2
+			JMP e21
+			
+a2			LDA $99
+			SEC
+			SBC $98,x
+			CMP #$1c
+			BCC a21
+			CMP #$e6
+			BCS a21
+			JMP e21
+			
+a21			LDA #$03
+			STA $6010,x
+			
+			LDA #$ff
+			STA $6000,x
+e21			INX
+			CPX #$7
+			BNE e22
+			JMP extff7a;-
+			
+;2018.8.12
+;pppoe
+;+;水泥弹减速效果		.ORG $bd8e	;<<e7ea
+e7ea			LDA #$01
+			STA $30e
+			
+			CPY #$1
+			BNE e7eap1
+			;LDA $179	;2p判断
+			;LDA $601d
+			LDA $a9
+e7eaext1		AND #$01
+			BNE e7ead1
+			RTS
+e7ead1			LDA #$05
+			STA $6010,x
+			LDA $6000,x	;坦克被击中减速
+			CMP #$ff
+			BEQ e7eaext
+			DEC $6000,x
+e7eaext			RTS
+			
+e7eap1			;LDA $178	;1p判断
+			;LDA $601c
+			lda $a8
+			JMP e7eaext1;-
+						
+			
+;2018.8.21
+;哥只是个传说，pppoe
+;+;<<e0b2		穿甲弹设计
+
+e7cc			CPY #$2		;子弹偏移量
+			BCC e7ccq1
+			CPY #$8
+			BCS e7ccq1
+
+e7ccext			LDA #$33
+			STA $cc,y
+			RTS
+			
+e7ccq1			CPY #$0		;1号子弹判断
+			BEQ e7cc1p
+			CPY #$8
+			BEQ e7cc1p	;2号子弹判断
+			;LDA $179
+			LDA $601d
+			CMP #$c0
+			BCC e7ccext
+			RTS
+			
+e7cc1p			;lda $178
+			LDA $601c	;1p判断
+			CMP #$c0
+			BCC e7ccext
+			RTS
+			;-
+			
+			
+;2018.9.1
+;pppoe
+;+坦克经验处理
+坦克经验			TAX
+			CPX #$0
+			BEQ 经验1
+			CPX #$8
+			BEQ 经验1
+			
+			LDX #$01
+经验2			INC $6026,x
+			LDA $6026,x
+			SEC
+			SBC #$4c
+			BPL tank4
+			LDA $6026,x
+			SEC
+			SBC #$3c
+			BPL tank3
+			LDA $6026,x
+			SEC
+			SBC #$1e
+			BPL tank2
+			LDA $6026,x
+			SEC
+			SBC #$0a
+			BPL tank1
+			RTS
+			
+			
+			
+			
+经验1			LDX #$0
+			JMP 经验2
+			
+tank1			LDA $a8,x
+			CMP #$20		
+			BCS tank11
+			JSR 属性写入
+			JSR 声音1
+tank11			RTS
+			
+tank2			LDA $a8,x
+			CMP #$40
+			BCS tank21
+			JSR 属性写入
+			JSR 声音1
+tank21			RTS
+			
+tank3			LDA $a8,x
+			CMP #$60
+			BCS tank31
+			JSR 属性写入
+			JSR 声音1
+tank31			RTS
+
+tank4			;LDA $a8,x	;升级成水泥弹
+			;CMP #$61
+			;BCS tank41
+			;LDA #$61
+			;JSR 属性写入
+			;JSR 声音1
+			LDA $601a,x
+			CLC
+			ADC #$05	;增加特种弹数量
+			STA $601a,x
+			LDA #$3b
+			STA $6026,x
+			RTS
+
+
+声音1			LDA #$01
+			STA $306
+			RTS
+			
+属性写入			CLC
+			ADC #$20
+			STA $101,x
+			STA $a8,x
+			RTS;-
+			
+			
+;2018.9.1
+;pppoe
+;+游戏按键设计
+c01f			LDA $08,x	;按键弹起判断
+			CMP $16,x
+			BEQ c01fext
+			STA $16,x
+			LDA $08,x
+			AND #$01
+			BNE A键按下	;a键按下时处理
+			RTS
+		
+;			LDA $06,x	;按键弹起判断
+;			CMP $18,x
+;			BEQ c01fext
+;			STA $18,x
+			
+;			LDA $06,x
+;			AND #$04
+;			BNE select按下	;select键按下时处理
+;c01fext			RTS
+
+A键按下			LDA $601a,x	;弹仓为0时不能发射
+			CMP #$0
+			BEQ c01fext
+			JMP $e136
+c01fext			RTS
+			
+;select按下		LDA $5c1c,x
+;			CMP #$0
+;			BEQ c01fq21
+;			CMP #$c0
+;			BEQ c01fq21
+;			CLC
+;			ADC #$10
+;			STA $5c1c,x
+;			RTS
+			
+;c01fq21		LDA #$a0
+;			STA $5c1c,x
+;			RTS
+			;-
+			
+			
+;2018.9.2
+;pppoe
+;+发射炮弹处理
+e099			CPX #$02	;判断12p行动
+			BCS e136ext
+			
+			LDA $06,x
+			CMP #$01	;b键判断
+			BNE e136ext
+			LDA $c0,x
+			CMP $90,x
+			
+			LDA $601a,x	;判断弹仓是否为0
+			CMP #$0
+			BEQ e136ext
+			
+			LDA $601c,x
+			CMP #$0
+			BNE e136q1
+			LDA $178,x
+e136q1			STA $601c,x
+			DEC $601a,x	;弹仓-1
+			JMP e099ext
+			
+e136ext			LDA #$0
+			STA $601c,x
+			
+e099ext			LDA $a0,x
+			AND #$03
+			TAY
+			RTS;-
+			
+
+;2018.9.22
+;pppoe
+;+ppu显示弹仓
+d413			JSR $d8fd
+			;JSR 内存修改
+			LDA $80	;场景判断
+			CMP #$0
+			BEQ d413ext
+			LDA $105
+			CMP #$70
+			BNE +
+			LDA #$0
+			STA $80
+			JMP d413ext
+			
++			TXA
+			PHA
+			JSR 十进制
+			
+			;LDA $a8
+			;CMP #$0
+			;BEQ d4132
+			
+			LDA #$22	;1p显示地址设置
+			STA $2006
+			LDA #$7d
+			STA $2006
+			JSR 数据写入1
+			
+d4132			;LDA $a9		;判断2p是否存在
+			;CMP #$0
+			;BEQ d4131
+			
+			LDA #$22	;2p显示地址设置
+			STA $2006
+			LDA #$dd
+			STA $2006
+			JSR 数据写入2
+			
+			;LDA #$0
+			;STA $2005
+			
+d4131			PLA
+			TAX
+			;JSR 调色板
+d413ext			LDA $4d
+			RTS
+			
+d413d1			.db $0F,$18,$27,$38,$0F,$0A,$1B,$3B,$0F,$0C,$10,$20,$F0,$04,$16,$20
+数据写入1		LDX #$1
+数据q1			LDA $6020,x	;弹仓显示地址
+			JSR 检测1p
+			CLC
+			ADC #$6e
+			STA $2007
+			DEX
+			BPL 数据q1
+			RTS
+			
+数据写入2		LDX #$1
+数据q2			LDA $6023,x	;弹仓显示地址
+			JSR 检测2p
+			CLC
+			ADC #$6e
+			STA $2007
+			DEX
+			BPL 数据q2			
+			RTS
+			
+检测1p			CMP #$0
+			BEQ +
+			RTS
++			CPX #$1
+			BEQ +
+			
+			PHA
+			LDA $6021
+			CMP #$0
+			BEQ ++
+			PLA
+			RTS
+++			PLA
++			LDA #$a3
+			RTS
+			
+检测2p			CMP #$0
+			BEQ +
+			RTS
++			CPX #$1
+			BEQ +
+			
+			PHA
+			LDA $6024
+			CMP #$0
+			BEQ ++
+			PLA
+			RTS
+++			PLA
++			LDA #$a3
+			RTS
+;-
+			
+			
+;2018.9.22
+;析弱，pppoe
+;+十进制转换
+十进制			TXA
+			PHA
+			LDA #$0		;1p十进制转换
+			sta $40
+			sta $41
+			sta $42
+
+ 			LDA $601a
+ 			JSR s100
+ 			LDX #$2
+十进制1			LDA $40,x
+ 			STA $6020,x
+ 			DEX
+ 			BPL 十进制1
+ 			
+ 			LDA #$0		;2p十进制转换
+			sta $40
+			sta $41
+			STA $42
+			
+ 			LDA $601b
+ 			JSR s100
+ 			LDX #$2
+十进制2			LDA $40,x
+ 			STA $6023,x
+ 			DEX
+ 			BPL 十进制2
+ 			PLA
+ 			TAX
+ 			RTS
+
+s100
+			CMP #$64	;百位判断
+			BCC s200
+			sec
+			sbc #$64
+			inc $42
+			jmp s100
+
+s200
+			CMP #$0A	;10位判断
+			BCC s300
+			sec
+			sbc #$0A
+			inc $41
+			jmp s200
+
+s300
+			STA $40		;个位数写入
+			rts;-
+			
+		
+
+						

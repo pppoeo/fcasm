@@ -1,0 +1,12 @@
+﻿;2018.7.21
+;缘定三生
+		.ORG $bd10	;<<fe9b
+		LDA $101,x	;读取坦克等级
+		CMP #$60
+		BEQ ext		;如果到终极形态不升级
+		CLC
+		ADC #$20	;坦克升级
+		STA $101,x
+		STA $a8,x
+ext		RTS
+		

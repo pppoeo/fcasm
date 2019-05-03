@@ -1,0 +1,12 @@
+﻿			.ORG $8150
+			LDA #$7
+			CMP $74
+			BCC x1
+			STA $74
+			
+x1			INC $72
+			LDA $72
+			CMP #$03
+			RTS
+			
+			

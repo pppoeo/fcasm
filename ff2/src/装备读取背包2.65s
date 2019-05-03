@@ -1,0 +1,15 @@
+﻿			.ORG $8370		;<<877a
+			LDA #$0
+			CMP $6f
+			BNE x1
+			INC $6f
+ext			PLA
+			PLA
+			PLA
+			PLA
+			LDA #$0
+			STA $a4		;zhizhengzhuangtai
+			JMP $b055	;beibao2
+		
+x1			DEC $6f
+			JMP ext

@@ -1,0 +1,14 @@
+﻿		.ORG $f8e3
+         	PHA
+      		LDA #$6
+       		SEI
+   		STA $8000
+   		STX $8001
+     		CLI
+       		PLA
+     		RTS
+     		LDX #$38	;f8f0
+     		PHP
+     		JSR $f8e3	
+     		PLP
+     		RTS

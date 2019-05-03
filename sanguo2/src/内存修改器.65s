@@ -1,0 +1,422 @@
+﻿.ORG $8000
+CMP #$ff
+BEQ MFF
+RTS
+
+
+MFF	JMP 内存修改
+
+
+;2018.11.24
+;粉墨
+内存修改
+LDA $83
+CMP #$0c
+BEQ neicun
+LDY #$1
+JMP $f25f
+;+常量===============
+temp=$0
+s=temp+2
+step_s=s+1
+spr=$5c00
+addr=$1A0
+chr_io=$5120
+chr=$51
+tile=$0
+joy=$83
+
+key_a	=@1
+key_b	=@10
+key_se	=@100
+key_st	=@1000
+key_up	=@10000
+key_down=@100000
+key_l	=@1000000
+key_r	=@10000000
+;-====================
+neicun	LDA #0
+	sta $2000		;关闭NMI中断
+	LDA temp		;开辟4字节临时变量
+	PHA
+	LDA temp+1
+	PHA
+	LDA s
+	PHA
+	LDA step_s
+	PHA
+-	LDA $2002		;等待一帧
+	bpl -
+	JSR call_get_input
+	LDA joy			;并等待按键弹起
+	BNE -
+	JSR call_addr_exists
+;====================================================		
+	JSR call_read		;读内存显示精灵
+	JSR call_set_ppu	;设置PPU
+	JMP step		;帧事件
+	
+;+step;帧事件=====================
+step	;帧事件
+	LDA #>spr		;刷新精灵
+-	STA $4014
+	LDA $2002		;等待帧
+	BPL *-3
+	JSR call_cop		;安全提醒和选中位置高亮
+	JSR call_get_input	;读键
+	JSR call_set_s
+	JSR call_set_ram
+	
+
+	JMP step
+	
+;-====================================================	
+	
+;+call_tab	;格式化为表格======================
+call_tab	;格式化为表格
+	LDX #0
+	LDY #0
+-	TXA
+	STY temp
+	LSR
+	LSR
+	LSR
+	STA temp+1
+	ASL
+	ADC temp+1		;加行间距
+	ASL
+	ASL
+	CLC
+	ADC #64
+	STA spr,Y		;写入Y坐标
+	
+	TXA
+	AND #@111
+	TAY
+	LDA XX,Y
+	LDY temp
+	STA spr+3,Y		;写入X坐标
+	
+	INX
+	INY
+	INY
+	INY
+	INY
+	BNE -
+	
+;调整地址显示坐标
+	LDA #$60
+	STA spr+11
+	LDA #$68
+	STA spr+15
+	RTS
+XX .HEX	50 58	68 70	80 88	98 A0
+;-====================================================
+;+call_set_ppu	;设置PPU===================
+call_set_ppu	;设置PPU
+	;LDA #$3
+	;STA $5101		;c5切chr
+	LDA #chr
+	STA chr_io
+	LDA #@10000
+	STA $2001		;只显示精灵
+-	LDA $2002		;设置颜色
+	BPL -
+	LDA #$3f
+	STA $2006
+	LDA #$10
+	STA $2006
+	LDX #0
+-	LDA color,X
+	STA $2007
+	INX
+	CPX #$10
+	BNE -
+	RTS
+color .HEX 0F120F0F 0F150F0F 0F260F0F 0F260F0F
+;-====================================================
+;+call_read;读内存设置精灵属性===========
+call_read		;读内存设置精灵属性
+;精灵属性置0
+call_spr0	LDA s	;设置为选中【地址】
+		AND #3
+		STA s
+		LDX #0
+		TXA
+-		STA spr,X
+		INX
+		BNE -
+	
+	JSR call_tab		;格式化为表格
+	
+aaa	LDA addr+1
+	STA temp
+	AND #$0f
+	ORA #tile
+	STA spr+13
+	LDA temp
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #$0f
+	ORA #tile
+	sta spr+9
+	LDA addr
+	STA temp+1
+	AND #$0f
+	ORA #tile
+	STA spr+5
+	LDA temp+1
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #$0f
+	ORA #tile
+	sta spr+1
+	
+	
+	LDY #29;循环次数30
+-	TYA			;读取内存
+	ASL
+	ASL
+	ASL
+	TAX
+	LDA (temp),y
++	AND #$0f		;内存值低位
+	ORA #tile
+	STA spr+21,x
+	LDA (temp),y
++	AND #$f0		;内存值高位
+	LSR
+	LSR
+	LSR
+	LSR
+	ORA #tile
+	STA spr+17,x
+	
+	DEY
+	BPL -
+	RTS
+;-====================================================
+;+call_wirte写内存
+call_wirte
+	LDA addr
+	STA temp+1
+	LDA addr+1
+	STA temp
+
+	LDY #29 ;循环30次
+-	TYA
+	ASL
+	ASL
+	ASL
+	TAX
+	LDA spr+2+16,X		;是否已修改
+	ORA spr+2+20,X
+	AND #@01
+	BEQ +
+	LDA spr+1+16,X
+	ASL
+	ASL
+	ASL
+	ASL
+	STA s
+	LDA spr+1+20,X
+	AND #$0f
+	ORA s
+	STA (temp),y		;写到内存
++	DEY
+	BPL -
+	
+	PLA			;修改RTS指针
+	PLA
+	PLA			;恢复现场
+	STA step_s
+	PLA
+	STA s
+	PLA
+	STA temp+1
+	PLA
+	STA temp
+	LDA #0
+	STA joy
+-	BIT $2002		;等待帧结束后返回
+	BPL -
+	;JSR 调色板
+	
+xxxa	RTS
+	
+;-
+;+call_get_input;获取手柄输入状态===========
+call_get_input	;获取手柄输入状态
+	LDA joy+1
+	STA joy+2
+	LDX #1
+	STX $4016
+	DEX
+	STX $4016
+	LDX #7
+-	LDA $4016		;读键
+	LSR
+	ROR joy+1
+	DEX
+	BPL -
+	LDA joy+1
+	EOR joy+2		;处理按键弹起
+	AND joy+1
+	STA joy
+	RTS
+;-====================================================
+;+call_res_color;重置为未选中颜色===========
+call_res_color		;重置颜色
+	LDX #63
+-	TXA
+	ASL
+	ASL
+	TAY
+	LDA spr+2,Y
+	AND #@01
+	STA spr+2,Y
+	DEX
+	BPL -
+	RTS
+;-====================================================
+;+call_set_s;设置选中位置===========
+call_set_s		;设置选中位置
+	LDY #3
+-	LDA joy
+	AND key_s,y	;是否按下某键
+	BEQ ++
+	LDA s
+	CLC			;S+ks
+	ADC ks,y
+	AND #63
+	STA s
+	JSR call_res_color
+++	DEY
+	BPL -
+	RTS
+	
+key_s	.DB key_r, key_l, key_up, key_down
+ks	.DB 1,256-1,256-8,8
+;-====================================================
+;+call_set_ram;修改内存===========
+call_set_ram		;修改内存
+	LDY #1
+-	LDA joy
+	AND key_ab,y	;是否按下a或b键
+	BEQ ++
+	LDA s	
+	ASL		
+	ASL
+	TAX
+	LDA spr+1,x	;调整内存
+	CLC
+	ADC lnc,y
+	AND #$0f
+	ORA #tile
+	STA spr+1,x
+	LDA spr+2,x
+	ORA #01
+	STA spr+2,x
+	
+	LDA s		;选中【地址】
+	CMP #4
+	BCS ++
+	LDA spr+5
+	AND #$0f
+	STA temp
+	LDA spr+1
+	ASL
+	ASL
+	ASL
+	ASL
+	ORA temp
+	STA addr	;修改地址
+	LDA spr+13
+	AND #$0f
+	STA temp
+	LDA spr+9
+	ASL
+	ASL
+	ASL
+	ASL
+	ORA temp
+	STA addr+1
+	JSR call_addr_exists	;如果是可写地址则刷新
+	BNE ++
+	JSR call_read
+	
+++	DEY
+	BPL -
+	
+	LDA joy
+	AND #key_se		;SE键
+	BEQ *+5
+	JSR call_read
+
+	LDA joy
+	CMP #key_st		;ST键
+	BNE *+5
+	JMP call_wirte
+
+	RTS
+key_ab	.DB key_a, key_b
+lnc	.DB 1,256-1
+;-====================================================
+;+call_cop;安全提醒和选中位置高亮
+call_cop
+	INC step_s
+	LDA s
+	ASL
+	ASL
+	TAY
+	CMP #4*4
+	BCS +
+	JSR call_addr_exists
+	BEQ +
+	LDA step_s
+	LSR
+	AND #@11
+	JMP ++
++	
+	LDA spr+2,Y
+	ORA #@10
+++	STA spr+2,Y
+	RTS	
+;-
+;+call_addr_exists是否可写内存区域
+call_addr_exists
+	LDA addr
+	BNE +
+	LDA #2
+	CMP addr+1
+	BCC +
+	STA addr+1
++	
+	LDX #0
+-	LDA #0
+	STA temp
+	LDA addr
+	CMP addr_start_h,x	;高字节>=最低限制
+	BCS *+4
+	INC temp
+	CMP addr_end_h,x	;;高字节<最高限制
+	BCC *+4
+	INC temp
+	
+	LDA temp
+	BEQ +
+	
+	
+	INX
+	CPX #addr_end_h - addr_start_h
+	BCC -
+	LDA temp
++	RTS
+addr_start_h	.HEX 00 60
+addr_end_h	.HEX 08 80
+	
+;--

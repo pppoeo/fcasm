@@ -1,0 +1,16 @@
+﻿			.ORG $82e3		;<<aa9f
+			LDA #$0
+			LDX $0a
+			PHA
+			LDA $6f
+			CMP #$0
+			BNE x1
+			PLA
+			STA $6060,x
+ext			LDX #$1c
+			JMP $f8e3
+			
+x1			PLA
+			STA $6070,x
+			JMP ext
+			

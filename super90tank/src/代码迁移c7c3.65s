@@ -1,0 +1,56 @@
+﻿		.ORG $bd00	;
+		PLA
+		PLA
+		JMP $C0A2
+		LDA #$01
+		STA $005A 
+		STA $006B
+		LDA #$6E
+		STA $0060
+		LDA #$D3
+		STA $0012
+		LDA #$41
+		STA $0011
+		LDX #$1D
+		LDY #$12
+		JSR $D6B3
+		LDA $008F
+		CMP #$02
+		BEQ C7F2
+		LDA $0083
+		BNE C7F2
+		LDA #$00
+		STA $005A
+		JMP C801
+C7F2		LDA #$D3
+		STA $0012
+		LDA #$41
+		STA $0011
+		LDX #$1D
+		LDY #$15
+		JSR $D6B3
+C801		LDX $005A
+		LDA $51,X
+		SEC
+		SBC #$01
+		BPL C80C
+		LDA #$00
+C80C	 	JSR $DA13
+		LDY #$36
+		LDX #$19
+		JSR $D934
+		LDA $005A
+		STA $0000
+		ASL
+		CLC
+		ADC $0000
+		CLC
+		ADC #$12
+		TAY
+		JSR $D6DD
+		DEC $005A
+		BPL C801
+		LDA #$00
+		STA $0060
+		STA $006B
+		RTS 

@@ -1,0 +1,32 @@
+﻿			.ORG $8290
+			PHP
+			PHA
+			LDA $6f
+			CMP #$0
+			BNE x1
+			LDA #$81
+			JSR x2
+			
+ext			PLA
+			PLP
+			JSR $b314
+			JSR $b33f
+			RTS
+			;LDX #$1c
+			;JMP $f8e3
+			
+x1			LDA #$82
+			JSR x2
+			JMP ext
+			
+x2			PHA		;ppu
+			LDA #$20
+			STA $2006
+			LDA #$66
+			STA $2006
+			PLA
+			STA $2007
+			LDA #$0
+			STA $2006
+			STA $2006	
+			RTS

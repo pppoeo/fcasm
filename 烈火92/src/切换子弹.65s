@@ -1,0 +1,20 @@
+﻿		.ORG $ff9f
+		
+		JSR $de39
+		LDA $22		;按键弹起判断
+		CMP $100
+		BEQ ++
+		STA $100
+		
+		LDA $22
+		AND #$80
+		BNE +
+++		RTS
++		LDA $89
+		CMP #$4
+		BCS +
+		INC $89
+		RTS
++		LDA #$0
+		STA $89
+		RTS

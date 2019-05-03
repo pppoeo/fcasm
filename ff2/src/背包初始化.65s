@@ -1,0 +1,7 @@
+﻿			.ORG $87d2
+			LDA #$0
+			STA $6f
+			LDA #$01
+			STA $a2
+			RTS
+			

@@ -1,0 +1,28 @@
+﻿ent=$ac10	;中文版8c20>>04
+
+	.ORG ent
+	TAX
+	LDA dh,x
+	PHA
+	LDA dd,x
+	PHA
+	RTS
+	
+dh .DB >m0
+dd .DB <m0-1
+
+;僚机自动攻击f875 >> nop nop
+属性=$100
+m0	LDA $20
+	CMP #$80
+	BEQ +
+	
+-	LDA $53
+	AND #$03
+	LDX $48
+	JMP $ff9f
+	
++	LDA 属性
+	STA $89
+	jmp -
+	

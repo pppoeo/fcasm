@@ -1,0 +1,41 @@
+﻿;2018.7.28
+;星云
+			.ORG $bd20	;<<DC09
+			LDA $0b
+			AND #$01
+			BNE y1
+			LDA $0b
+			AND #$03
+			BNE y2
+			
+y1			LDA $6000,x
+			BMI j1		;减速调用
+			CMP #$1
+			BEQ j2		;加速调用
+move			JSR $dc3d
+			RTS
+
+			
+y2			PLA
+			PLA
+			JMP $dc38
+			
+j1			LDA $6008,x 	;减速效果设计
+			CMP #$01
+			BNE j11
+			DEC $6008,x
+			JMP move
+j11			INC $6008,x
+			RTS
+			
+j2			LDA #$01	;加速效果设计
+			STA $15
+move1			JSR $dc3d
+			DEC $15
+			BPL move1
+			INC $15
+			RTS
+			
+			
+			
+			

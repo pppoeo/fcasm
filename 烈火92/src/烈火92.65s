@@ -1,0 +1,19 @@
+﻿		.ORG $ff9f
+		BIT $22
+		BVS +
+		RTS
+		
++		LDA #$4
+		CMP $100
+		BCC +
+		STA $100
+		
++		LDX $100
+		LDA ac,x
+		STA $89
+		DEC $100
+		bpl +
+		LDA #$4
+		STA $100
++		RTS
+ac		.db $01,$02,$03,$04		

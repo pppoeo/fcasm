@@ -1,0 +1,15 @@
+﻿			.ORG $83c0	;<<b104
+			TAX
+			STA $82
+			
+			LDA $6f
+			CMP #$0
+			BNE x1
+			LDA $6060,x
+			;STA $80
+			RTS
+			
+x1			LDA $6070,x
+			sta $80
+			RTS
+			

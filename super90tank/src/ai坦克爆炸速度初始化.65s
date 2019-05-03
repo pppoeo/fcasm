@@ -1,0 +1,8 @@
+﻿			.ORG $bdc0	;<<E7f2
+			LDA #$0		;坦克爆炸速度初始化
+			STA $5c00,x
+			
+			JSR $e3ef
+			JSR $bde0
+			RTS
+			

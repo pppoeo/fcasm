@@ -1,0 +1,29 @@
+﻿			.ORG $8300		;<<a892
+			LDA $6f
+			CMP #$0
+			BNE x1
+			
+			LDX $80			
+			LDA $6060,x
+			PHA
+			LDY $81
+			LDA $6060,y
+			STA $6060,x
+			PLA
+			STA $6060,y
+			CLC
+			RTS
+			
+x1			LDX $80
+			LDA $6070,x
+			PHA
+			LDY $81
+			LDA $6070,y
+			STA $6070,x
+			PLA
+			STA $6070,y
+			CLC
+			RTS
+			
+			
+			

@@ -1,0 +1,1126 @@
+﻿;ent=$9000	;国际版5b010>>2d
+ent=$8000	;中文版4c010>>26
+
+	.ORG ent
+	TAX
+	LDA dh,x
+	PHA
+	LDA dd,x
+	PHA
+	RTS
+	
+dh .DB >m0,>m1,>m2,>m3,>m4,>m5,>m6,>m7,>m8
+dd .DB <m0-1,<m1-1,<m2-1,<m3-1,<m4-1,<m5-1,<m6-1,<m7-1,<m8-1
+
+
+;2018.10.28
+;pppoe
+;+双引擎设计
+m0
+b824			LDX $d0
+			CPX #$ff
+			BEQ a824z1
+			CPX #$08
+			BEQ a824z1
+		
+			LDA #$0		;载重初始化
+			STA $0
+			LDA #$8
+			STA $9b
+			STX $9a
+		
+a824t1			ldx $9a
+			LDA $6718,x
+			CMP #$90
+			BCS a824t2
+			CMP #$78
+			BCC a824t2
+			TAY
+			LDA $b77b,y
+			CLC
+			ADC $0
+			STA $0		;写入引擎载重
+			STA $183
+		
+a824t2			JSR b047z1	;装备地址偏移计算
+			DEC $9b
+			BPL a824t1
+a824t3			LDA #$64
+			STA $1
+			LDX $20
+			JMP $d3ff
+		
+a824z1			LDY $6653,x
+			LDA $b77b,y
+			STA $0
+			JMP a824t3
+		
+;修正武器店引擎读取bug  FC6B>> jsr $b827 改 jsr $b824
+;-
+
+;2018.10.28
+;PPPOE
+;+c装置连射
+;7052 攻击方式  
+;00d1 角色偏移
+;83cd 基础攻击力
+;ad76 装备栏读取
+;6627 主炮
+;6632 副炮
+;6648 c装置
+;6653 发动机
+;665f 底盘
+;6764 坦克id
+;7000 怪物剩余数量
+;70e8 0我方攻击
+;704f，x 坦克攻击状态66主炮102副炮22,23,24逃跑,防御,保护
+;6478,y 人物坦克状态
+;d3f9 86模式切页prg d414 87模式切页prg
+;9AA3后面有900+字节没用
+
+;0B:A624:20 82 CF  JSR $CF82 跳入连射程序
+
+;战斗时我方攻击标记
+;aa55>>	jsr $cf7a	;STA $70E8	.org $cf7a
+			;LDA #$1
+			;STA $81
+			;rts
+;$cf82  切页
+m1			 
+a624			PHP
+			LDA #$00
+			CMP $7000	;判断怪物死亡状态
+			BEQ a624ext
+			
+			LDX $d1		;我方攻击状态
+			LDA #$1
+			CMP $81
+			BNE a624ext
+									
+			LDA #$07	;出租坦克判断
+			CMP $6764,x
+			BCC a624ext
+			
+			LDA #$40	;判断主炮，副炮，se攻击
+			CMP $704f,x
+			BCs a624ext		;>40
+			LDA #$74
+			CMP $704f,x	
+			BCC a624ext		;<=74
+			
+			LDX $d0
+			LDA #$1		;炮弹数量=1时不发生连射
+			CMP $6535,x
+			BCS a624ext
+			
+			LDA #$0
+			CMP $80
+			BNE a624t1
+			
+			STA $80
+			LDY $d0
+			STY $9a
+			LDX #$0
+	
+a624z1			LDY $9a
+			LDA $6718,y
+			CMP #$76	;c装置判断
+			BCC a624z2
+			CMP #$78
+			BCS a624z2
+			
+			CLC
+			LDA #$2
+			ADC $80
+			STA $80
+a624z2			JSR b047z1	;装备偏移量计算
+			INX
+			CPX #$8
+			BNE a624z1
+			
+a624t1			LDA $80		;连击次数
+			CMP #$0
+			BEQ a624ext
+			INC $180
+			CMP $180
+			BNE a624ext2	;>2t1
+
+a624ext			LDA #$0
+			STA $80
+			STA $81
+			STA $180
+			PLP
+			INC $7060	;数据自增返回程序
+			LDX $20
+			JMP $d3ff
+
+a624ext2		PLP
+			INC $7060
+			DEC $7060
+			LDX $20
+			JMP $d3ff
+		;-
+					
+;2018.10.28
+;pppoe
+;+装备标记读取
+m2
+af6f			LDX #$07
+af6fx1			LDA $326,x
+			CMP $0		;要装备标记判断
+			BNE af6fext
+			CMP #$1c
+			BEQ af6fext2
+			CMP #$1d
+			BEQ af6ff1
+			CMP #$1e
+			BEQ af6fext2
+			CMP #$1f
+			BEQ af6ft1
+			CMP #$20
+			BEQ af6ft2
+	
+af6fext1		INC $80
+			CMP $80
+			BCS af6fext
+af6fext2		LDA #$0
+			STA $326,x
+af6fext			DEX
+			BPL af6fx1
+			LDA #$0
+			STA $80
+			LDX $20
+			JMP $d3ff
+
+af6ff1			LDA $d0		;副炮
+			CMP #$02
+			BEQ +
+			CMP #$06
+			BCC af6fext2
++			LDA #$4		;装备数量
+			JMP af6fext1
+			
+af6ft1			LDA $d0		;c装置
+			CMP #$7
+			BNE af6fext2
+			LDA #$1		;装备数量
+			JMP af6fext1
+			
+af6ft2			LDA $d0		;发动机
+			CMP #$5
+			BCC af6fext2
+			LDA #$1		;装备数量
+			JMP af6fext1
+
+			;-
+
+;2018.11.11
+;pppoe
+;+装备状态读取写入
+m3
+b047			LDX $d0
+			STX $9a		;坦克装备地址偏移
+			LDY #$0
+		
+b047a1			LDX $9a
+			LDA $326,y
+			CMP #$0
+			BEQ b047r
+			CMP #$21
+			BEQ b047r
+		
+			LDA $574,y
+			STA $6718,x
+b047t1			INY
+			JSR b047z1
+			CPY #$8
+			BNE b047a1
+			
+			LDA #$0
+			STA $1
+			STA $4
+b047y3			LDX $1
+			LDA $ac0f,x
+			STA $2
+			LDA #$7
+			STA $3
+			JMP b04b
+		
+b047r			LDA #$0
+			STA $6718,x
+			JMP b047t1
+		
+b04b			
+b04by1        		LDX $3		;已装备标记判断
+			LDA $326,x
+			CMP $2
+			BNE b04by2
+			
+			LDY $0
+			LDA $6627,y
+			CMP #$0
+			BNE b04by2
+			
+	   		LDA $574,x           		
+			STA $6627,y
+			LDA $584,x
+			STA $6535,y
+			LDA #$0
+			STA $574,x
+			ldx $1
+			lda $4
+			ora $e6f6,x
+			sta $4
+b04by2	       		DEC $3
+			BPL b04by1
+			LDA #$0
+			STA $80
+			JSR $eb3f
+			INC $1
+			LDA $1
+			CMP #$6
+			BNE b047y3
+			
+			LDX $20
+			JMP $d3ff
+		
+b047z1			CLC
+			LDA $9a
+			ADC #$08
+			STA $9a
+			RTS
+		;-
+		
+;2018.11.11
+;pppoe
+;+装备标记写入
+m4
+abcb		JSR $ac63
+		PHA
+		JSR 装备预处理
+		LDX #$0
+
+abcbt1		LDA #$0
+		CMP $326,x	;无装备判断
+		BNE abcbt2
+		CMP $574,x
+		BEQ abcbt2
+		
+		LDY $d0
+		STY $9a
+		LDA #$8
+		STA $9b
+
+abcbt3		LDY $9a
+		LDA $6718,Y
+		CMP $574,x	;装备id比较
+		BEQ abcbw
+		JSR b047z1	;装备地址偏移
+		DEC $9b
+		BPL abcbt3	
+		JMP abcbt2
+
+abcbw		CMP #$55	;多装备状态读取写入
+		BCS abcbf1
+		CMP #$41
+		BCC abcbf1
+		LDA #$1c
+		STA $326,x
+		JMP abcbx1
+		
+abcbf1		CMP #$75
+		BCS abcbs1
+		CMP #$65
+		BCC abcbs1
+		LDA #$1d
+		STA $326,x
+		JMP abcbx1
+		
+abcbs1		CMP #$65
+		BCS abcbc1
+		CMP #$55
+		BCC abcbc1
+		LDA #$1e
+		STA $326,x
+		JMP abcbx1
+
+abcbc1		CMP #$79
+		BCS abcbv1
+		CMP #$75
+		BCC abcbv1
+		LDA #$1f
+		STA $326,x
+		JMP abcbx1
+		
+abcbv1		CMP #$91
+		BCS abcbt2
+		CMP #$79
+		BCC abcbt2
+		LDA #$20
+		STA $326,x
+		
+abcbx1		LDA #$0
+		STA $6718,y
+		
+abcbt2		INX
+		CPX #$8
+		BNE abcbt1
+		
+		JSR 装备状态读取	 	;装备状态读取
+		PLA
+		JSR $fa30
+		LDA #$01
+		JSR $eb1c
+		
+		LDX $20
+		JMP $d3ff
+		
+装备预处理	LDX #$0
+			
+abcbxx1		LDA $d0
+		STA $9a
+		LDA #$8
+		STA $9b
+
+		LDA $326,x
+		CMP #$0
+		BEQ abcbext
+			
+abcbxx2		LDY $9a
+		LDA $574,x
+		CMP $6718,y
+		BNE abcbxx3
+		LDA #$0
+		STA $6718,y
+		JMP abcbext
+abcbxx3		JSR b047z1	;偏移量计算
+		DEC $9b
+		BPL abcbxx2
+			
+abcbext		INX
+		CPX #$8
+		BNE abcbxx1
+		;JSR $cf7a
+		RTS
+		
+装备状态读取		LDX $d0
+			STX $9a		;坦克装备地址偏移
+			LDY #$0
+		
+读取a1			LDX $9a
+			LDA $326,y
+			CMP #$0
+			BEQ 读取r
+			CMP #$21
+			BEQ 读取r
+		
+			LDA $574,y
+			STA $6718,x
+读取t1			INY
+			JSR b047z1
+			CPY #$8
+			BNE 读取a1
+			RTS
+			
+读取r			LDA #$0
+			STA $6718,x
+			JMP 读取t1
+			
+			
+;-
+
+
+;2018.12.22 
+;pppoe
+;+快捷键
+m5
+d7ef		LDA $3d
+		CMP #$40
+		BEQ d7efx1	;探测器快捷键设置
+		;CMP #$40
+		;BEQ 对话程序
+d7efext		LDA $19
+		STA $6b
+		LDA $a1
+		LDX $20
+		JMP $d3ff
+		
+d7efx1		LDX #$0
+d7efx3		LDA $64b6,x	;二号人物背包
+		CMP #$b4
+		BEQ d7efx2
+		CMP #$b3
+		BEQ d7efx2
+		INX
+		CPX #$8
+		BNE d7efx3
+		JMP d7efext
+		
+d7efx2		STA $e2
+		LDX #$1a
+		JSR $d414	;b000prg切页
+		JMP $bdde	;探测器调用
+		;LDA #$01
+		;STA $2f
+		
+对话程序		;LDX #$19
+		;JSR $d41a
+		;JMP $a27c	;对话程序调用
+		;-
+		
+;218.12.22
+;pppoe
+;+发动机档位设计
+m6			LDX #$2
+-			LDA $6764,x
+			TAY
+			LDA $6561,y	;发动机损坏判断
+			ASL
+			AND #$80
+			BPL +
+			LDA #$0	 	;减速效果写入
+			STA $6e
+			JMP d7ffext
++			DEX
+			BPL -
+			
+
+d7ff			LDX #$2
+d7fft2			LDA $6478,x	;读取人物状态
+			AND #$80
+			BMI d7fft1
+			DEX
+			BPL d7fft2
+			
+d7ffext1		LDA #$1
+			STA $6e
+d7ffext			LDA $80
+			STA $81
+			LDX $20
+			JMP $d3ff
+			
+d7fft1			LDA $6764,x	;角色坦克偏移计算
+			STA $9a
+d7fftt1			LDY $9a
+			;LDA $6718,y
+			;CMP #$75	;发动机判断
+			;BNE d7ffz2
+			JSR 档位设定
+			JMP d7ffext
+d7ffz2			JSR b047z1	;装备偏移量计算
+			INX
+			CPX #$8
+			BNE d7fftt1
+			JMP d7ffext1
+			
+档位设定			LDA $3d
+			CMP $46		;按键弹起判断
+			BEQ d7ffa1
+			STA $46
+			CMP #$20
+			BNE d7ffa1
+			LDA $6e
+			CMP #$2
+			BNE d7ffa2
+			DEC $6e
+			RTS
+d7ffa2			LDA #$2
+			STA $6e
+d7ffa1			RTS
+
+	;-
+	
+;2018.11.24
+;pppoe
+;+武器齐射
+m7
+a7dd		LDX $d1
+		LDA #$7
+		CMP $6764,x	;出租车判断
+		BCC a7ddy2
+		
+		LDY $6764,x
+		STY $9a
+		LDX #$0
+a7ddc1		LDY $9a
+		LDA $6718,y
+		CMP #$76
+		BEQ a7ddy1	;c装置判断
+		JSR b047z1
+		INX
+		CPX #$8
+		BNE a7ddc1
+		JMP a7ddy2			
+		
+a7ddy1		LDX $d1
+		LDY $6764,x
+		STY $9a
+		LDA #$08
+		STA $9c
+a7ddt3		LDY $9a
+		LDA $6718,y		;武器id读取
+		CMP #$74		;武器范围判断
+		BCS a7ddt1
+		CMP #$40
+		BCC a7ddt1
+		LDY $d1
+		STA $704f,y		;武器id写入
+		
+		JSR a7dddan
+		JSR a7ddg1		;攻击力计算
+	
+		
+		LDA #$0			;loop
+		STA $7052,y
+
+a7ddy2		LDX #$11
+		JSR $d414
+		LDY $d1
+		LDX $704f,y		;读取武器id
+		LDA $a2c7,x		;读取武器属性
+		STA $70e7
+		
+		TXA
+		PHA
+		LDX #$17
+		JSR $d414
+		PLA
+		TAX
+		
+		CPX #$55
+		BCC a7ddt2
+		CPX #$65
+		BCS a7ddt2
+		
+		LDA #$1c
+		JSR $ab8f
+a7ddt2		RTS
+		;JSR $a9b3
+
+ma
+a7ddt1		LDA #$0
+		CMP $9c
+		BEQ a7ddext
+		CMP $7000		;怪物数量判断
+		BEQ a7ddext1
+
+		JSR b047z1
+		DEC $9c
+		BPL a7ddt3
+a7ddext1	LDA #$0		;数据初始化
+		STA $9a
+		STA $9c
+		STA $99
+a7ddext		PLA
+		PLA
+		LDA #$a7
+		PHA
+		LDA #$f3
+		PHA
+		RTS
+
+a7ddg1		PHA
+		LDX #$11
+		JSR $d414
+		PLA
+		
+		TAX
+		LDA $a274,x
+		STA $d2
+		LDA $a38c,x
+	
+		JSR a7ddm0		
+		LDA $0
+		STA $70e1
+		LDA $01
+		STA $70e2
+		
+		;PHA
+		;LDX #$17
+		;JSR $d414
+		;PLA
+		
+		;LDA #$14
+		;JSR $a72c
+		RTS
+		
+a7ddm0		LDX #$0
+		STX $0
+		STX $1
+		STX $2
+		CMP #$47
+		BCS a7ddm1
+		TAX 
+		lda $a0ea,x
+		STA $0
+		RTS
+a7ddm1		CMP #$ac
+		BCS a7ddm2
+		SEC
+		SBC #$47
+		ASL
+		TAX
+		LDA $a130,x
+		STA $0
+		LDA $a131,x
+		STA $1
+		RTS
+a7ddm2		SBC #$ac
+		ASL
+		TAX
+		LDA $a1fa,x
+		STA $0
+		STA $8
+		LDA $a1fb,x
+		STA $1
+		STA $9
+		CPX #$48
+		BCC a7ddex1
+		LDA #$0a
+		STA $0
+		JSR $d654
+		LDA $0e
+		STA $0
+		LDA $0f
+		STA $1
+		LDA $10
+		STA $2
+a7ddex1		rts
+		
+a7dddan		PHA
+		TXA
+		PHA
+		LDX $99
+		LDA $6535,x
+		AND #$3f
+		BEQ a7ddp1		;
+		DEC $6535,x
+		PLA
+		TAX
+		PLA
+		RTS
+		
+a7ddp1		LDA $99
+		CLC
+		ADC #$08
+		STA $99
+		RTS
+
+;-
+	
+	
+;2018.11.18
+;粉墨
+;内存修改器
+m8
+;+常量===============
+temp=$0
+s=temp+2
+step_s=s+1
+spr=$700
+addr=$1A0
+chr_io=$8001
+chr=$8
+tile=$0
+joy=$3d
+
+key_a	=@1
+key_b	=@10
+key_se	=@100
+key_st	=@1000
+key_up	=@10000
+key_down=@100000
+key_l	=@1000000
+key_r	=@10000000
+;-====================
+;+main
+	LDA #0
+	sta $2000		;关闭NMI中断
+	LDA temp		;开辟4字节临时变量
+	PHA
+	LDA temp+1
+	PHA
+	LDA s
+	PHA
+	LDA step_s
+	PHA
+-	LDA $2002		;等待一帧
+	bpl -
+	JSR call_get_input
+	LDA joy			;并等待按键弹起
+	BNE -
+	JSR call_addr_exists
+;====================================================		
+	JSR call_read		;读内存显示精灵
+	JSR call_set_ppu	;设置PPU
+	JMP step		;帧事件
+	;-
+;+step;帧事件=====================
+step	;帧事件
+	LDA #>spr		;刷新精灵
+-	STA $4014
+	LDA $2002		;等待帧
+	BPL *-3
+	JSR call_cop		;安全提醒和选中位置高亮
+	JSR call_get_input	;读键
+	JSR call_set_s
+	JSR call_set_ram
+	
+
+	JMP step
+	
+;-====================================================	
+	
+;+call_tab	;格式化为表格======================
+call_tab	;格式化为表格
+	LDX #0
+	LDY #0
+-	TXA
+	STY temp
+	LSR
+	LSR
+	LSR
+	STA temp+1
+	ASL
+	ADC temp+1		;加行间距
+	ASL
+	ASL
+	CLC
+	ADC #64
+	STA spr,Y		;写入Y坐标
+	
+	TXA
+	AND #@111
+	TAY
+	LDA XX,Y
+	LDY temp
+	STA spr+3,Y		;写入X坐标
+	
+	INX
+	INY
+	INY
+	INY
+	INY
+	BNE -
+	
+;调整地址显示坐标
+	LDA #$60
+	STA spr+11
+	LDA #$68
+	STA spr+15
+	RTS
+XX .HEX	50 58	68 70	80 88	98 A0
+;-====================================================
+;+call_set_ppu	;设置PPU===================
+call_set_ppu	;设置PPU
+	LDA #$82
+	STA $8000
+	LDA #chr
+	STA chr_io
+	LDA #@10000
+	STA $2001		;只显示精灵
+-	LDA $2002		;设置颜色
+	BPL -
+	LDA #$3f
+	STA $2006
+	LDA #$10
+	STA $2006
+	LDX #0
+-	LDA color,X
+	STA $2007
+	INX
+	CPX #$10
+	BNE -
+	RTS
+color .HEX 0F120F0F 0F150F0F 0F260F0F 0F260F0F
+;-====================================================
+;+call_read;读内存设置精灵属性===========
+call_read		;读内存设置精灵属性
+;精灵属性置0
+call_spr0	LDA s	;设置为选中【地址】
+		AND #3
+		STA s
+		LDX #0
+		TXA
+-		STA spr,X
+		INX
+		BNE -
+	
+	JSR call_tab		;格式化为表格
+	
+aaa	LDA addr+1
+	STA temp
+	AND #$0f
+	ORA #tile
+	STA spr+13
+	LDA temp
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #$0f
+	ORA #tile
+	sta spr+9
+	LDA addr
+	STA temp+1
+	AND #$0f
+	ORA #tile
+	STA spr+5
+	LDA temp+1
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #$0f
+	ORA #tile
+	sta spr+1
+	
+	
+	LDY #29;循环次数30
+-	TYA			;读取内存
+	ASL
+	ASL
+	ASL
+	TAX
+	LDA (temp),y
++	AND #$0f		;内存值低位
+	ORA #tile
+	STA spr+21,x
+	LDA (temp),y
++	AND #$f0		;内存值高位
+	LSR
+	LSR
+	LSR
+	LSR
+	ORA #tile
+	STA spr+17,x
+	
+	DEY
+	BPL -
+	RTS
+;-====================================================
+;+call_wirte写内存
+call_wirte
+	LDA addr
+	STA temp+1
+	LDA addr+1
+	STA temp
+
+	LDY #29 ;循环30次
+-	TYA
+	ASL
+	ASL
+	ASL
+	TAX
+	LDA spr+2+16,X		;是否已修改
+	ORA spr+2+20,X
+	AND #@01
+	BEQ +
+	LDA spr+1+16,X
+	ASL
+	ASL
+	ASL
+	ASL
+	STA s
+	LDA spr+1+20,X
+	AND #$0f
+	ORA s
+	STA (temp),y		;写到内存
++	DEY
+	BPL -
+	
+	PLA			;修改RTS指针
+	PLA
+	PLA			;恢复现场
+	STA step_s
+	PLA
+	STA s
+	PLA
+	STA temp+1
+	PLA
+	STA temp
+	JSR call_joy0		;等待按键弹起
+	
+xxxa	;JSR $d2a8		;调色板恢复
+	LDX $20
+	JMP $d3ff		;prg回切
+;-
+;+call_get_input;获取手柄输入状态===========
+call_get_input	;获取手柄输入状态
+	LDA joy+1
+	STA joy+2
+	LDX #1
+	STX $4016
+	DEX
+	STX $4016
+	LDX #7
+-	LDA $4016		;读键
+	LSR
+	ROR joy+1
+	DEX
+	BPL -
+	LDA joy+1
+	EOR joy+2		;处理按键弹起
+	AND joy+1
+	STA joy
+	RTS
+;-====================================================
+;+call_res_color;重置为未选中颜色===========
+call_res_color		;重置颜色
+	LDX #63
+-	TXA
+	ASL
+	ASL
+	TAY
+	LDA spr+2,Y
+	AND #@01
+	STA spr+2,Y
+	DEX
+	BPL -
+	RTS
+;-====================================================
+;+call_set_s;设置选中位置===========
+call_set_s		;设置选中位置
+	LDY #3
+-	LDA joy
+	AND key_s,y	;是否按下某键
+	BEQ ++
+	LDA s
+	CLC			;S+ks
+	ADC ks,y
+	AND #63
+	STA s
+	JSR call_res_color
+++	DEY
+	BPL -
+	RTS
+key_s	.DB key_r, key_l, key_up, key_down
+ks	.DB 1,256-1,256-8,8
+;-====================================================
+;+call_set_ram;修改内存===========
+call_set_ram		;修改内存
+	LDY #1
+-	LDA joy
+	AND key_ab,y	;是否按下a或b键
+	BEQ ++
+	LDA s	
+	ASL		
+	ASL
+	TAX
+	LDA spr+1,x	;调整内存
+	CLC
+	ADC lnc,y
+	AND #$0f
+	ORA #tile
+	STA spr+1,x
+	LDA spr+2,x
+	ORA #01
+	STA spr+2,x
+	
+	LDA s		;选中【地址】
+	CMP #4
+	BCS ++
+	LDA spr+5
+	AND #$0f
+	STA temp
+	LDA spr+1
+	ASL
+	ASL
+	ASL
+	ASL
+	ORA temp
+	STA addr	;修改地址
+	LDA spr+13
+	AND #$0f
+	STA temp
+	LDA spr+9
+	ASL
+	ASL
+	ASL
+	ASL
+	ORA temp
+	STA addr+1
+	JSR call_addr_exists	;如果是可写地址则刷新
+	BNE ++
+	JSR call_read
+	
+++	DEY
+	BPL -
+	
+	LDA joy
+	AND #key_se		;SE键
+	BEQ *+5
+	JSR call_read
+
+	LDA joy
+	CMP #key_st		;ST键
+	BNE *+5
+	JMP call_wirte
+
+	RTS
+key_ab	.DB key_a, key_b
+lnc	.DB 1,256-1
+;-====================================================
+;+call_cop;安全提醒和选中位置高亮
+call_cop
+	INC step_s
+	LDA s
+	ASL
+	ASL
+	TAY
+	CMP #4*4
+	BCS +
+	JSR call_addr_exists
+	BEQ +
+	LDA step_s
+	LSR
+	AND #@11
+	JMP ++
++	
+	LDA spr+2,Y
+	ORA #@10
+++	STA spr+2,Y
+	RTS	
+;-
+;+call_addr_exists是否可写内存区域
+call_addr_exists
+	LDA addr
+	BNE +
+	LDA #2
+	CMP addr+1
+	BCC +
+	STA addr+1
++	
+	LDX #0
+-	LDA #0
+	STA temp
+	LDA addr
+	CMP addr_start_h,x	;高字节>=最低限制
+	BCS *+4
+	INC temp
+	CMP addr_end_h,x	;;高字节<最高限制
+	BCC *+4
+	INC temp
+	
+	LDA temp
+	BEQ +
+	
+	
+	INX
+	CPX #addr_end_h - addr_start_h
+	BCC -
+	LDA temp
++	RTS
+addr_start_h	.HEX 00 60
+addr_end_h	.HEX 08 80
+	
+;--
+;+等待按键弹起
+call_joy0
+-	LDA $2002	;程序等待1帧
+	BPL -
+	JSR call_get_input
+	LDA joy+1	;等待按键弹起
+	BNE -
+	RTS;-
+

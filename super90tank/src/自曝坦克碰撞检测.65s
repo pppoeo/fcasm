@@ -1,0 +1,52 @@
+﻿			.ORG $bde0
+			JSR jc1		;1p碰撞检测
+			JSR jc2		;2p碰撞检测
+			RTS
+			
+			
+jc1			LDA $90,x
+			SEC
+			SBC $90
+			CMP #$20
+			BCC q1
+			CMP #$e6
+			BCS q1
+			RTS
+			
+			
+q1			LDA $98,x
+			SEC
+			SBC $98
+			CMP #$20
+			BCC q11
+			CMP #$e6
+			BCS q11
+			RTS
+			
+q11			LDA #$ff
+			STA $6000
+			RTS
+			
+jc2			LDA $90,x
+			SEC
+			SBC $91
+			CMP #$20
+			BCC q2
+			CMP #$e6
+			BCS q2
+			RTS
+			
+			
+q2			LDA $98,x
+			SEC
+			SBC $99
+			CMP #$20
+			BCC q21
+			CMP #$e6
+			BCS q21
+			RTS
+			
+q21			LDA #$ff
+			STA $6001
+			RTS
+			

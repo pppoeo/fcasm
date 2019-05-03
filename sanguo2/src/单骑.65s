@@ -1,0 +1,275 @@
+﻿.ORG $8000
+	TAX
+	LDA dh,x
+	PHA
+	LDA dd,x
+	PHA
+	RTS
+	
+dh	.DB >m0,>m1,>m2,>m3,>m4,>m5,>m6
+dd	.DB <m0-1,<m1-1,<m2-1,<m3-1,<m4-1,<m5-1,<m6-1
+;常量
+角色=$3a
+	
+;2018.12.31
+;pppoe
+;+;势力跟随
+m0	JSR 角色写入
+	LDA $6F03	;读取当前君主id
+	CMP #$02
+	BCC ++1
+	CMP #$05
+	BEQ ++1
+	CMP #$06
+	BNE +
+	LDA #$05
++	SEC
+	SBC #$02
+	ASL
+	STA $0470
+	LDA #$0A
+	STA $0401
+	LDA #$00
+	STA $0402
+	RTS
+++1	INC $0401
+	RTS
+	
+角色写入	LDY #$03
+	LDA ($EE),Y	;读取君主控制位
+	BNE +
+	LDA $6683
+	AND #$03
+	CMP #$01
+	BNE +
+	LDA #角色	;写入角色id
+	STA $0012
+	JSR $AF1F
++	RTS;-
+
+;2019.1.1
+;pppoe
+;+战略地图城池
+m1	LDY #$00
+	LDA ($00),Y
+	AND #$07
+	CMP $6F03
+	BNE ++e
+	JSR 角色判断
+	BNE ++e
+	LDA #$FF
+	STA $04E5
+	INC $0400
+	LDA #$00
+	STA $0401
+	RTS
+	
+++e	LDA #$22	;对话id
+	JMP $f26d
+	
+角色判断	LDY #$11
+-	LDA ($00),Y	;读取城池武将id
+	CMP #角色
+	BEQ +
+	INY
+	CPY #$1B
+	BCC -
+	LDA #$01
+	RTS
+
++	TYA
+	CMP #$11	;判断角色是否时太守
+	BEQ +
+	LDA #$00
+	STA $6690
+	RTS
++	LDA #$01	;增加太守标记
+	STA $6690
+	LDA #$00
+	RTS	;-
+	
+;2019.1.1
+;pppoe
+;+战略地图命令书0时增加额外回合
+;Rom$72159  a0 01 b1 ee 改lda $6691 光标跟随玩家所在城池
+
+m2	LDA #$0b
+	STA $400
+	LDA $46c
+	CMP #$2		;大于2时玩家操作
+	BCC +
+	LDA #$9
+	STA $400
+	LDA #$0
+	STA $46c
++	RTS
+	;-
+	
+;2019.1.1
+;pppoe
+;+发生战争时判断
+m3	JSR $d319
+	LDY #$00
+-	LDA $0664,Y	;读取战争武将id
+	CMP #角色	;判断是否有玩家参与
+	BEQ +
+	INY
+	CPY #$14
+	BCC -
+	LDA #$03
+	RTS
++	LDA #$00
+	RTS
+	
+;-
+
+;2019.1.1
+;pppoe
+;+命令书
+;$a0b3 改 EAEAEA
+m4	LDA #角色
+	JSR ++1		;运算角色属性地址
+	LDY #$4
+	LDA ($0),y	;用德运算行动命令
+	LSR		
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$01
+	CMP #$5
+	BCC +
+	LDA #$5		;最大命令书数量
++	STA $6f05	;命令书写入
+	RTS
+	
+++1	LDY #$00
+	STY $0001
+	STA $0
+	ASL
+	ROL $0001
+	CLC
+	ADC $0
+	PHA
+	LDA $0001
+	ADC #$0
+	STA $0001
+	PLA
+	ASL
+	ROL $0001
+	ASL
+	ROL $0001
+	CLC
+	ADC #$C0
+	STA $0
+	LDA $0001
+	ADC #$63
+	STA $0001
+	RTS	
+;-
+	
+;2019.1.1
+;pppoe
+;+指令改
+m5	LDA #$1e
+	STA $68
+	
+	LDA $6690
+	BNE +
+	LDA $0401
+	CMP #$09
+	BEQ +
+	CMP #$0E
+	BNE ++
++	JMP $B9F9
+++	LDA #角色
+	LDY #$3B
+	JSR $F237	;程序切页
+	JMP $D730	;进入指令
+	INC $0424
+	LDA $6690
+	BNE ++
+	LDY #$00
+-	LDA dat,Y 
+	CMP $0010
+	BNE +
+	LDA dat+3,Y
+	CMP $0424
+	BEQ +++
++	INY
+	CPY #$02
+	BCC -
+++	RTS
++++	LDA $424
+	INC $424
+	RTS
+	
+dat	.DB $44,$FF,$02,$01,$ff
+	;-
+	
+;2019.1.1
+;pppoe
+;+玩家所在城池
+m6	LDX #$0
+-	TXA
+	JSR ++c		;计算城池首地址
+	LDY #$0
+	STY $2		;城中兵力数清零
+	STY $4		;城中武将数清零
+	JSR ++a
+	INX
+	CPX #$1e
+	BCC -
+	CLC
+	RTS
+	
+++c	LDY #$00
+	STY $0021
+	ASL
+	ROL $0021
+	ASL
+	ROL $0021
+	ASL
+	ROL $0021
+	ASL
+	ROL $0021
+	ASL
+	ROL $0021
+	CLC
+	ADC #$00
+	STA $0020
+	LDA $0021
+	ADC #$60
+	STA $0021
+	RTS 
+	
+++a	LDY #$11
+-	STY $4
+	LDA ($20),Y
+	CMP #$FF
+	BEQ +
+	CMP #角色	;判断角色
+	BNE +
+	STX $6691	;玩家所在城池id写入
+	LDA #$3
+	STA $6F0A
+	STA $6F12
+	STA $6F1A
+	STA $6F22
+	STA $6F2A
+	STA $6F32
+	STA $6F3A
+	LDY #$00
+	LDA ($20),Y
+	JSR $F368
+	LDA #$00
+	LDY #$03	;当前控制位写入势力
+	STA ($0),Y
+	RTS
++	INC $4
+	LDY $4
+	CPY #$1B	;是否是第十位武将
+	BCC -
+	RTS
+
+;-

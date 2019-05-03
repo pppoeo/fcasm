@@ -1,0 +1,8 @@
+﻿			.ORG $ff60	;<<91e4
+			JSR $9208
+			PHP
+			JSR $f8db
+			JSR $a1a0
+			PLP
+			RTS
+			

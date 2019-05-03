@@ -1,0 +1,25 @@
+﻿;2018.7.28
+;缘定三生
+		.ORG $bd60	;<<fe19
+		;CPX #$02
+		;BCS a1
+		LDA $6000,x	;读取坦克档位
+		BMI q1
+		
+		LDA $101,x	;读取坦克等级
+		CMP #$20
+		BCS q1
+		RTS
+		
+q1		LDA $6000,x
+		CMP #$01
+		BEQ ext
+		INC $6000,x
+ext		RTS
+		
+a1		CLC
+		ADC #$20
+		sta $101,x
+		STA $a8,x
+		RTS
+		

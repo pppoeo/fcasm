@@ -1,0 +1,8 @@
+﻿			.ORG $ff6c	;<<a1fc
+			LDY #$2b
+			STA ($80),y
+			LDA #$1
+			STA $6ff8
+			RTS
+			
+			

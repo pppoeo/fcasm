@@ -1,0 +1,15 @@
+﻿			.ORG $ff32	;<<9501
+			TXA
+			PHA
+			JSR $dba9
+			LDA $20
+			CMP #$0
+			BNE x1
+ext			INC $9e
+			PLA
+			RTS
+			
+x1			LDA #$0
+			STA $fc
+			JMP ext
+			

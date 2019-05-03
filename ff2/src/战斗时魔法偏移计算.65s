@@ -1,0 +1,8 @@
+﻿			.ORG $f832
+			INC $7cf7,x
+			TXA
+			LDX $9e
+			STA $6ff0,x
+			RTS
+			
+			

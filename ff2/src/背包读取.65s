@@ -1,0 +1,25 @@
+﻿			.ORG $8220
+			PHP
+			LDX $84
+			
+			;LDA $7b13
+			;CMP #$14
+			;BEQ x2
+			;2b2a7 >> 01
+	
+			LDA $6f
+			CMP #$0
+			BNE x1
+
+x2			LDA $6060,x	;背包1
+			STA $84
+			PLP
+			RTS
+			
+x1			LDA $6070,x	;背包2
+			STA $84
+			PLP
+			RTS
+			
+			
+			

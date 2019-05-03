@@ -1,0 +1,10 @@
+﻿			.ORG $f7ed
+			LDA $0
+			STA $47
+			LDA $7b13
+			CMP #$0b
+			BEQ x1
+			PLA
+			PLA
+			JMP $de67
+x1			RTS

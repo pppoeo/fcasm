@@ -1,0 +1,12 @@
+﻿			.ORG $bdd0	;<<fe09
+			LDA $6000,x
+			CMP #$ff
+			BEQ q1
+			CMP #$00
+			BEQ q1
+			RTS
+			
+q1			INC $6000,x
+			RTS
+			
+			

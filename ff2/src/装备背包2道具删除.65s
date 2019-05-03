@@ -1,0 +1,21 @@
+﻿			.ORG $83d3	;<<b13d
+			TAX
+			LDA $6100,x
+			RTS
+			
+			LDX $82		;<<83d8
+			PHA
+			LDA $6f
+			CMP #$0
+			BNE x1
+			PLA
+			STA $6060,x
+ext			RTS
+			
+x1			PLA
+			STA $6070,x
+			RTS
+			
+			
+			
+			

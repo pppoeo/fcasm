@@ -1,0 +1,46 @@
+﻿			.ORG $8000	;<<f82b
+			LDX #$0
+			STX $104
+			
+x1			LDY $104
+			LDA $7da4,y
+			CMP #$1		;判断角色魔法
+			BCC xx1
+			CMP #$29
+			BCS xx1
+			
+			LDY $104
+			LDA $7d87,y	;判断角色mp
+			CMP #$1
+			BCS xx1
+			LDA $7d86,y
+			CMP #$2
+			BCS xx1
+ext2			LDA #$0
+			STA $6ff8
+			STA $fc
+			JMP ext
+xx1			INX
+			JSR x2
+			CPX #$4
+			BNE x1
+			LDA $6ff8
+			CMP #$1
+			BNE ext1
+			JMP ext2
+ext1			LDA #$01
+			STA $fc
+ext			LDA #$4
+			STA $9e
+			LDA $3e
+			ASL
+			TAX
+			JMP $f8e3
+		
+x2			CLC
+			LDA $104
+			ADC #$30
+			STA $104
+			RTS
+			
+			

@@ -1,0 +1,21 @@
+﻿			
+			.ORG $bd8e	;<<e7ea
+			LDA #$01
+			STA $30e
+			
+			CPY #$1
+			BNE p1
+			LDA $179	;2p判断
+			
+ext1			CMP #$b0
+			BCS d1
+			RTS
+d1			LDA $6000,x	;坦克被击中减速
+			CMP #$ff
+			BEQ ext
+			DEC $6000,x
+ext			RTS
+			
+p1			LDA $178	;1p判断
+			JMP ext1
+			

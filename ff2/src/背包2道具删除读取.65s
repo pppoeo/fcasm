@@ -1,0 +1,13 @@
+﻿			.ORG $8330	;<<a87d
+			LDX $80
+			LDA $6f
+			CMP #$0
+			BNE x1
+			LDA $6060,x
+ext			CMP #$10
+			RTS
+			
+x1			LDA $6070,x
+			JMP ext
+			
+			

@@ -1,0 +1,12 @@
+﻿;2018.7.28
+;星云
+			.ORG $bd90	;<<ff81
+			;CPX #$02
+			;BCS q1
+			LDA #$ff
+			STA $6000,x
+q1			LDA #$01
+			STA $30e
+			RTS
+			
+			

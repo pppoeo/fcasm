@@ -1,0 +1,75 @@
+﻿;2018.7.28
+;星云
+			.ORG $be30	;<<ff7a
+			;CPX #$02
+			;BCS q1
+			LDA #$0
+			STA $6000,x
+			TXA
+			PHA
+			CPX #$01
+			BEQ ai2
+			JSR ai1
+ext			PLA
+			TAX
+			LDA #$73
+			STA $a0,x
+			RTS
+			
+ai1			LDX #$02			
+e2			LDA $90	;1p坦克爆炸检测
+			SEC
+			SBC $90,x
+			CMP #$20
+			BCC a1
+			CMP #$e6
+			BCS a1
+			JMP e1
+			
+a1			LDA $98
+			SEC
+			SBC $98,x
+			CMP #$20
+			BCC a11
+			CMP #$e6
+			BCS a11
+			JMP e1
+			
+a11			LDA #$ff
+			STA $6000,x
+e1			INX
+			CPX #$7
+			BNE e2
+			RTS
+			
+ai2			LDX #$02			
+e22			LDA $91		;2p坦克爆炸检测
+			SEC
+			SBC $90,x
+			CMP #$20
+			BCC a2
+			CMP #$e6
+			BCS a2
+			JMP e21
+			
+a2			LDA $99
+			SEC
+			SBC $98,x
+			CMP #$20
+			BCC a21
+			CMP #$e6
+			BCS a21
+			JMP e21
+			
+a21			LDA #$ff
+			STA $6000,x
+e21			INX
+			CPX #$7
+			BNE e22
+			JMP ext
+			
+			
+			
+			
+			
+			

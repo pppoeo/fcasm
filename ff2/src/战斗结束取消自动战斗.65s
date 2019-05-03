@@ -1,0 +1,5 @@
+﻿			.ORG $f77d	;<<a4e1
+			STA $fc
+			ADC $601e
+			RTS
+			
